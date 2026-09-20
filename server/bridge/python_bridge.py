@@ -462,10 +462,12 @@ def cmd_robustness_monte_carlo(params: Dict[str, Any]) -> Dict[str, Any]:
     symbol = params.get("symbol", "NVDA")
     start_date = params.get("start_date")
     end_date = params.get("end_date")
-    strat_name = params.get("strategy_name", "SMA Crossover")
-    strat_params = params.get("strategy_params", {"fast_period": 20, "slow_period": 50})
+    strat_name = params.get("strategy") or params.get("strategy_name", "SMA Crossover")
+    fast_period = int(params.get("fast_period", 20))
+    slow_period = int(params.get("slow_period", 50))
+    strat_params = {"fast_period": fast_period, "slow_period": slow_period}
     init_cap = float(params.get("initial_capital", 100_000.0))
-    num_sims = int(params.get("num_simulations", 500))
+    num_sims = int(params.get("n_simulations") or params.get("num_simulations", 500))
     periods = 365 if "BTC" in symbol else 252
 
     df = get_historical_data(symbol, start_date=start_date, end_date=end_date, use_cache=True)
@@ -475,25 +477,35 @@ def cmd_robustness_monte_carlo(params: Dict[str, Any]) -> Dict[str, Any]:
 
     mc_df = RobustnessEngine.monte_carlo_simulation(strat_rets, num_simulations=num_sims, seed=42)
 
-    p5 = (mc_df.quantile(0.05, axis=1) * init_cap).tolist()
-    p50 = (mc_df.quantile(0.50, axis=1) * init_cap).tolist()
-    p95 = (mc_df.quantile(0.95, axis=1) * init_cap).tolist()
+    p5 = [float(v) for v in (mc_df.quantile(0.05, axis=1) * init_cap).values]
+    p50 = [float(v) for v in (mc_df.quantile(0.50, axis=1) * init_cap).values]
+    p95 = [float(v) for v in (mc_df.quantile(0.95, axis=1) * init_cap).values]
 
     sample_paths = []
-    for col in range(min(30, mc_df.shape[1])):
-        sample_paths.append((mc_df[col] * init_cap).tolist())
+    for col in range(min(25, mc_df.shape[1])):
+        sample_paths.append([float(v) for v in (mc_df[col] * init_cap).values])
 
     final_vals = mc_df.iloc[-1] * init_cap
+    final_equities = [float(x) for x in final_vals.values if not np.isnan(x)]
     prob_profit = float((final_vals > init_cap).mean())
 
+    steps = list(range(len(p50)))
+
     return {
+        "steps": steps,
+        "percentile_5": p5,
+        "percentile_50": p50,
+        "percentile_95": p95,
         "p5": p5,
         "p50": p50,
         "p95": p95,
+        "final_equities": final_equities,
         "sample_paths": sample_paths,
         "probability_of_profit": prob_profit,
         "median_ending_value": float(p50[-1]) if p50 else init_cap,
+        "best_95pct_outcome": float(p95[-1]) if p95 else init_cap,
         "worst_5pct_outcome": float(p5[-1]) if p5 else init_cap,
+        "initial_capital": init_cap,
     }
 
 
@@ -504,10 +516,10 @@ def cmd_robustness_param_scan(params: Dict[str, Any]) -> Dict[str, Any]:
     end_date = params.get("end_date")
     periods = 365 if "BTC" in symbol else 252
 
-    df = get_historical_data(symbol, start_date=start_date, end_date=end_date, use_cache=True)
+    fast_range = params.get("fast_range") or [5, 10, 15, 20, 25, 30, 40, 50]
+    slow_range = params.get("slow_range") or [30, 40, 50, 60, 75, 100, 150, 200]
 
-    fast_range = [10, 15, 20, 25, 30]
-    slow_range = [40, 50, 60, 70, 80, 100]
+    df = get_historical_data(symbol, start_date=start_date, end_date=end_date, use_cache=True)
 
     grid = []
     for f_p in fast_range:
