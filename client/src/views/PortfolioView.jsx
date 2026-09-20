@@ -88,7 +88,7 @@ export default function PortfolioView({ startDate, endDate }) {
   });
 
   // Pie chart trace
-  const activeWeights = data?.applied_weights || data?.weights || weights;
+  const activeWeights = (data && (data.applied_weights || data.weights)) || weights || {};
   const pieTrace = {
     labels: Object.keys(activeWeights),
     values: Object.values(activeWeights),

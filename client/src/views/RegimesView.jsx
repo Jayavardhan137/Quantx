@@ -7,6 +7,7 @@ export default function RegimesView({ symbol = 'BTC-USD', startDate, endDate }) 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [activeRegimeTab, setActiveRegimeTab] = useState('combined');
 
   useEffect(() => {
     let isMounted = true;
@@ -70,8 +71,6 @@ export default function RegimesView({ symbol = 'BTC-USD', startDate, endDate }) 
     name: '20-Day Annualized Volatility (%)',
     line: { color: '#ec4899', width: 1.5 },
   };
-
-  const [activeRegimeTab, setActiveRegimeTab] = useState('combined');
 
   const combinedRows = [
     { label: 'Bullish + High Volatility', key: 'bull_high_vol', color: 'var(--accent-amber)', desc: 'SMA50 > SMA200 & Vol > 75th %ile' },

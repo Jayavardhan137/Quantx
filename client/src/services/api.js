@@ -3,13 +3,54 @@
  * Interfaces with Express Backend and Python Engine IPC
  */
 
-const BASE_URL = '/api';
+// Dynamically determine the backend base API URL
+function getBaseUrl() {
+  if (typeof window !== 'undefined') {
+    // If running in development on port 3000, connect directly to port 5000 API
+    if (window.location.port === '3000') {
+      return `http://${window.location.hostname}:5000/api`;
+    }
+  }
+  return '/api';
+}
+
+async function request(endpoint, options = {}) {
+  const base = getBaseUrl();
+  const url = `${base}${endpoint}`;
+  
+  let res;
+  try {
+    res = await fetch(url, options);
+  } catch (netErr) {
+    // If direct connection failed, try fallback to proxy route
+    if (base !== '/api') {
+      try {
+        res = await fetch(`/api${endpoint}`, options);
+      } catch (proxyErr) {
+        throw new Error(`Connection error: ${netErr.message}`);
+      }
+    } else {
+      throw new Error(`Connection error: ${netErr.message}`);
+    }
+  }
+
+  const text = await res.text();
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch (parseErr) {
+    throw new Error(`Invalid JSON response (Status ${res.status}): ${text.substring(0, 100)}`);
+  }
+
+  if (!res.ok || !data.success) {
+    throw new Error(data.error || `HTTP ${res.status} Error`);
+  }
+
+  return data.data;
+}
 
 export async function fetchAssets() {
-  const res = await fetch(`${BASE_URL}/assets`);
-  const data = await res.json();
-  if (!data.success) throw new Error(data.error || 'Failed to fetch assets');
-  return data.data;
+  return request('/assets');
 }
 
 export async function fetchMarketData(symbol, startDate, endDate) {
@@ -18,10 +59,7 @@ export async function fetchMarketData(symbol, startDate, endDate) {
   if (startDate) params.append('start_date', startDate);
   if (endDate) params.append('end_date', endDate);
 
-  const res = await fetch(`${BASE_URL}/market-data?${params.toString()}`);
-  const data = await res.json();
-  if (!data.success) throw new Error(data.error || 'Failed to fetch market data');
-  return data.data;
+  return request(`/market-data?${params.toString()}`);
 }
 
 export async function fetchCorrelation(startDate, endDate) {
@@ -29,65 +67,47 @@ export async function fetchCorrelation(startDate, endDate) {
   if (startDate) params.append('start_date', startDate);
   if (endDate) params.append('end_date', endDate);
 
-  const res = await fetch(`${BASE_URL}/correlation?${params.toString()}`);
-  const data = await res.json();
-  if (!data.success) throw new Error(data.error || 'Failed to fetch correlation');
-  return data.data;
+  return request(`/correlation?${params.toString()}`);
 }
 
 export async function runBacktest(params) {
-  const res = await fetch(`${BASE_URL}/backtest`, {
+  return request('/backtest', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(params),
   });
-  const data = await res.json();
-  if (!data.success) throw new Error(data.error || 'Failed to run backtest');
-  return data.data;
 }
 
 export async function compareStrategies(params) {
-  const res = await fetch(`${BASE_URL}/compare-strategies`, {
+  return request('/compare-strategies', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(params),
   });
-  const data = await res.json();
-  if (!data.success) throw new Error(data.error || 'Failed to compare strategies');
-  return data.data;
 }
 
 export async function runPortfolioSimulation(params) {
-  const res = await fetch(`${BASE_URL}/portfolio-simulation`, {
+  return request('/portfolio-simulation', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(params),
   });
-  const data = await res.json();
-  if (!data.success) throw new Error(data.error || 'Failed to simulate portfolio');
-  return data.data;
 }
 
 export async function runMonteCarlo(params) {
-  const res = await fetch(`${BASE_URL}/robustness/monte-carlo`, {
+  return request('/robustness/monte-carlo', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(params),
   });
-  const data = await res.json();
-  if (!data.success) throw new Error(data.error || 'Failed to run Monte Carlo');
-  return data.data;
 }
 
 export async function runParamScan(params) {
-  const res = await fetch(`${BASE_URL}/robustness/param-scan`, {
+  return request('/robustness/param-scan', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(params),
   });
-  const data = await res.json();
-  if (!data.success) throw new Error(data.error || 'Failed to run parameter scan');
-  return data.data;
 }
 
 export async function fetchRegimes(symbol, startDate, endDate) {
@@ -96,22 +116,13 @@ export async function fetchRegimes(symbol, startDate, endDate) {
   if (startDate) params.append('start_date', startDate);
   if (endDate) params.append('end_date', endDate);
 
-  const res = await fetch(`${BASE_URL}/regimes?${params.toString()}`);
-  const data = await res.json();
-  if (!data.success) throw new Error(data.error || 'Failed to fetch regimes');
-  return data.data;
+  return request(`/regimes?${params.toString()}`);
 }
 
 export async function fetchAlpacaStatus() {
-  const res = await fetch(`${BASE_URL}/alpaca-status`);
-  const data = await res.json();
-  if (!data.success) throw new Error(data.error || 'Failed to check Alpaca status');
-  return data.data;
+  return request('/alpaca-status');
 }
 
 export async function fetchEngineStatus() {
-  const res = await fetch(`${BASE_URL}/engine-status`);
-  const data = await res.json();
-  if (!data.success) throw new Error(data.error || 'Failed to check engine status');
-  return data.data;
+  return request('/engine-status');
 }

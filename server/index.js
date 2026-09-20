@@ -59,7 +59,7 @@ app.use((err, req, res, next) => {
   res.status(500).json({ success: false, error: err.message || 'Internal Server Error' });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 QuantX Node.js Server listening on port ${PORT}`);
   console.log(`📡 API endpoints mounted on http://localhost:${PORT}/api`);
 });
