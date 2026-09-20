@@ -6,6 +6,8 @@ import MethodologyModal from './components/MethodologyModal';
 import AlpacaFeedModal from './components/AlpacaFeedModal';
 import EngineModal from './components/EngineModal';
 import Premium3DLoader from './components/Premium3DLoader';
+import QuantChatModal from './components/QuantChatModal';
+import FloatingChatButton from './components/FloatingChatButton';
 
 // Views
 import OverviewView from './views/OverviewView';
@@ -25,6 +27,7 @@ export default function App() {
   const [isMethodologyOpen, setIsMethodologyOpen] = useState(false);
   const [isAlpacaOpen, setIsAlpacaOpen] = useState(false);
   const [isEngineOpen, setIsEngineOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const [assets, setAssets] = useState([]);
   const [historicalUniverse, setHistoricalUniverse] = useState({
     start: '2021-09-20',
@@ -113,6 +116,7 @@ export default function App() {
         onOpenMethodology={() => setIsMethodologyOpen(true)}
         onOpenAlpaca={() => setIsAlpacaOpen(true)}
         onOpenEngine={() => setIsEngineOpen(true)}
+        onOpenChat={() => setIsChatOpen(true)}
         onReplayLoader={() => setIsInitialLoading(true)}
       />
 
@@ -209,6 +213,26 @@ export default function App() {
       <EngineModal
         isOpen={isEngineOpen}
         onClose={() => setIsEngineOpen(false)}
+      />
+
+      {/* QuantX AI Financial Assistant Powered by Featherless AI */}
+      <QuantChatModal
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+        terminalContext={{
+          symbol: params.symbol,
+          strategy: params.strategy,
+          activeTab: activeTab,
+          start_date: params.start_date,
+          end_date: params.end_date,
+          metrics: backtestResult?.metrics,
+        }}
+      />
+
+      {/* Floating Action Button to launch AI Assistant */}
+      <FloatingChatButton
+        onClick={() => setIsChatOpen(true)}
+        isOpen={isChatOpen}
       />
     </div>
   );

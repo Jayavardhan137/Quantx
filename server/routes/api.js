@@ -317,10 +317,91 @@ router.get('/engine-status', async (req, res) => {
       },
       slippageModel: 'Market Price * (1 ± Slippage)',
       feeModel: 'Traded Notional * Transaction Cost',
-      testSuite: '47/47 Automated Tests Passing (100% Green)',
+      testSuite: '63/63 Automated Tests Passing (100% Green)',
       timestamp: new Date().toISOString()
     }
   });
+});
+
+// 12. POST /api/chat - QuantX AI Assistant powered by Featherless AI
+router.post('/chat', async (req, res) => {
+  const apiKey = process.env.FEATHERLESS_API_KEY || 'rc_9af733252be1f55cd5690f9dc51d034d14cddaad44415ccf85733b427f853fbb';
+  const { messages = [], context = {} } = req.body;
+
+  let contextSummary = '';
+  if (context.symbol || context.strategy) {
+    contextSummary = `\nCurrent Terminal Context:
+- Active Symbol: ${context.symbol || 'N/A'}
+- Active Strategy: ${context.strategy || 'N/A'}
+- Current Tab: ${context.activeTab || 'N/A'}
+- Selected Date Range: ${context.start_date || 'N/A'} to ${context.end_date || 'N/A'}`;
+    if (context.metrics) {
+      contextSummary += `\n- Latest Backtest Metrics: ${JSON.stringify(context.metrics)}`;
+    }
+  }
+
+  const systemMessage = {
+    role: 'system',
+    content: `You are QuantX AI, an elite institutional quantitative financial educator and research assistant inside the QuantX Terminal.
+Your mission is to explain complex quantitative finance concepts, trading strategies, risk metrics, portfolio mathematics, and market dynamics in an intuitive, simple, engaging, and clear manner for users.
+
+Guidelines:
+1. Explain concepts simply with intuitive real-world analogies, clear bullet points, and concise key takeaways.
+2. If mathematical formulas are relevant, explain each variable simply (e.g. for Sharpe Ratio: return generated per unit of risk/volatility).
+3. Ground answers in the QuantX platform features:
+   - Next-Bar Execution ($t \\rightarrow t+1$) to eliminate lookahead bias
+   - Strategies: SMA Crossover, EMA Trend, Momentum Lookback, Mean Reversion (RSI + Bollinger)
+   - Risk & Performance: Sharpe, CAGR, Max Drawdown, Volatility, Win Rate, Profit Factor
+   - Portfolio Allocation: Equal Weight (1/N), Inverse Volatility (Risk Parity), Correlation
+   - Market Regimes: 4-State Matrix (Bull/Bear Trend × High/Low Volatility)
+   - Robustness: 500-Path Monte Carlo Bootstrap and 2D Parameter Stability Heatmaps
+4. When terminal context is available, refer to the active asset/strategy to give concrete explanations.${contextSummary}
+5. Keep answers well-structured using markdown headers, bullet points, and bold text for key terms.`
+  };
+
+  const payload = {
+    model: 'mistralai/Mistral-7B-Instruct-v0.2',
+    messages: [systemMessage, ...messages],
+    temperature: 0.5,
+    max_tokens: 800,
+  };
+
+  try {
+    const response = await fetch('https://api.featherless.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'User-Agent': 'QuantX-Terminal/1.0 (Windows NT 10.0; Win64; x64)',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      return res.status(response.status).json({
+        success: false,
+        error: `Featherless API error (${response.status}): ${errorText}`,
+      });
+    }
+
+    const data = await response.json();
+    const reply = data.choices?.[0]?.message?.content || 'No response received from AI model.';
+
+    res.json({
+      success: true,
+      data: {
+        reply,
+        model: data.model || payload.model,
+        usage: data.usage || null,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      error: `Chat request failed: ${err.message}`,
+    });
+  }
 });
 
 module.exports = router;

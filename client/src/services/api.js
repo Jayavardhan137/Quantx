@@ -126,3 +126,11 @@ export async function fetchAlpacaStatus() {
 export async function fetchEngineStatus() {
   return request('/engine-status');
 }
+
+export async function sendChatMessage(messages, context = {}) {
+  return request('/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messages, context }),
+  });
+}

@@ -1,8 +1,8 @@
-import React from 'react';
 import {
   Activity,
   BarChart3,
   BookOpen,
+  Bot,
   Cpu,
   Database,
   Layers,
@@ -10,6 +10,7 @@ import {
   PieChart,
   Scale,
   ShieldCheck,
+  Sparkles,
   TrendingUp,
   Zap
 } from 'lucide-react';
@@ -20,6 +21,7 @@ export default function Header({
   onOpenMethodology,
   onOpenAlpaca,
   onOpenEngine,
+  onOpenChat,
   onReplayLoader,
 }) {
   const tabs = [
@@ -71,6 +73,28 @@ export default function Header({
       </nav>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+        <button
+          className="btn-primary-action"
+          onClick={onOpenChat}
+          style={{
+            width: 'auto',
+            padding: '0.45rem 0.9rem',
+            fontSize: '0.8rem',
+            borderRadius: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            background: 'linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%)',
+            boxShadow: '0 0 15px rgba(14, 165, 233, 0.35)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+          }}
+          title="Open QuantX AI Financial Assistant (Featherless AI)"
+        >
+          <Bot size={15} />
+          <span>AI Assistant</span>
+          <Sparkles size={12} style={{ opacity: 0.8 }} />
+        </button>
+
         <button
           className="btn-secondary"
           onClick={onOpenMethodology}
